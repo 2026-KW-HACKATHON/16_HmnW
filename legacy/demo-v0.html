@@ -1,0 +1,374 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>월계1동 쿠폰 모음집</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@700;900&display=swap">
+<style>
+/* layout: one phone-width column — sticky header, perforated coupon list, bottom tab bar */
+:root {
+  --bg: #eef1f5; --card: #fff; --ink: #16243a; --muted: #5d6b7f; --line: #ccd4df;
+  --navy: #24466f; --on-navy: #fff; --stamp: #cf3a2b; --ok: #1d8656;
+  --serif: "Noto Serif KR", "Nanum Myeongjo", serif;
+  --sans: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151f; --card: #18212d; --ink: #e4eaf2; --muted: #95a2b4; --line: #2d3a4b;
+    --navy: #92b6e4; --on-navy: #0e151f; --stamp: #ff705f; --ok: #4cc28a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e151f; --card: #18212d; --ink: #e4eaf2; --muted: #95a2b4; --line: #2d3a4b;
+  --navy: #92b6e4; --on-navy: #0e151f; --stamp: #ff705f; --ok: #4cc28a; color-scheme: dark;
+}
+[hidden] { display: none !important }
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); word-break: keep-all; -webkit-tap-highlight-color: transparent }
+button, input, select { font: inherit; color: inherit }
+:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px }
+
+.app { max-width: 480px; margin-inline: auto; padding-inline: 16px; padding-block: 0 calc(88px + env(safe-area-inset-bottom, 0px)) }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; margin-inline: -16px; padding: 14px 16px 10px; background: var(--bg) }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+h1 { margin: 0; font: 900 22px/1.25 var(--serif); color: var(--navy); letter-spacing: -.01em }
+.demo { flex: none; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; font: 500 11px var(--mono); color: var(--muted) }
+.me { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 4px 0 0; font-size: 13px; color: var(--muted) }
+.me .ok { color: var(--ok); font-weight: 700 }
+
+main > section { display: grid; gap: 12px }
+.unlock { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 14px; background: var(--navy); color: var(--on-navy); text-decoration: none; font-size: 14px }
+.unlock span:last-child { flex: none; font-weight: 700 }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 4px 16px }
+.chips::-webkit-scrollbar { display: none }
+.chip { flex: none; padding: 6px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); font-size: 13px; cursor: pointer }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--card); font-weight: 700 }
+.count { margin: 0; font: 500 12px var(--mono); color: var(--muted) }
+
+.list, .mine { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none }
+.coupon { position: relative; display: grid; gap: 6px; width: 100%; padding: 14px 16px 12px; overflow: hidden; border: 0; border-radius: 14px; background: var(--card); text-align: left; cursor: pointer; box-shadow: 0 1px 3px rgb(10 20 40 / .08) }
+.coupon:disabled { cursor: default }
+.coupon:disabled :is(.shop, .title, .who) { opacity: .45 }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px }
+.shop { font-size: 14px; font-weight: 700 }
+.meta { margin-left: auto; font: 500 12px var(--mono); color: var(--muted) }
+.title { font: 700 20px/1.35 var(--serif); color: var(--navy); text-wrap: balance }
+.perf { position: relative; margin: 6px -16px 4px; border-top: 2px dashed var(--line) }
+.coupon .perf::before, .coupon .perf::after { content: ""; position: absolute; top: -10px; width: 18px; height: 18px; border-radius: 50%; background: var(--bg) }
+.coupon .perf::before { left: -9px }
+.coupon .perf::after { right: -9px }
+.who { padding: 0 6px; border: 1.5px solid; border-radius: 6px; font-size: 12px; font-weight: 700; line-height: 1.6 }
+.who.student { color: var(--navy) }
+.who.visitor { color: var(--stamp) }
+.who.all { color: var(--muted) }
+.time { font: 500 12px var(--mono); color: var(--muted) }
+.state { display: flex; align-items: center; gap: 5px; margin-left: auto; font-size: 12.5px; font-weight: 700; color: var(--ok) }
+.state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor }
+.coupon:disabled .state { color: var(--muted) }
+.coupon.used .state { color: var(--stamp) }
+.stamp { position: absolute; top: 36px; right: 16px; padding: 2px 8px; border: 2.5px solid; border-radius: 6px; color: var(--stamp); font: 900 15px/1.3 var(--serif); transform: rotate(-12deg) }
+.empty { padding: 20px; text-align: center; font-size: 14px; color: var(--muted) }
+
+dialog { width: min(400px, 100% - 32px); padding: 22px 20px 14px; overflow: hidden; border: 0; border-radius: 18px; background: var(--card); color: var(--ink) }
+dialog::backdrop { background: rgb(8 14 24 / .7) }
+.eyebrow { margin: 0; font: 500 11px var(--mono); letter-spacing: .08em; color: var(--muted) }
+.u-shop { margin: 10px 0 0; font-weight: 700 }
+.u-title { margin: 2px 0 8px; font: 900 26px/1.3 var(--serif); color: var(--navy); text-wrap: balance }
+.u-proof { margin: 0; font-size: 14px; font-weight: 700; color: var(--ok) }
+dialog .perf { margin: 16px -20px }
+.u-date { margin: 0; text-align: center; font-size: 13px; color: var(--muted) }
+.clock { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; font: 500 40px/1.2 var(--mono); font-variant-numeric: tabular-nums }
+.clock::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); animation: pulse 1s ease-in-out infinite alternate }
+.hint { margin: 2px 0 14px; text-align: center; font-size: 12px; color: var(--muted) }
+.ghost { display: block; width: 100%; margin-top: 4px; padding: 10px; border: 0; background: none; color: var(--muted); cursor: pointer }
+.stamp.big { top: 42%; left: 50%; right: auto; padding: 6px 16px; border-width: 4px; font-size: 34px; background: color-mix(in srgb, var(--card) 80%, transparent); transform: translate(-50%, -50%) rotate(-12deg); animation: slam .4s cubic-bezier(.2, .8, .3, 1.3) both }
+@keyframes pulse { to { opacity: .2 } }
+@keyframes slam { from { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(2.4) } }
+@media (prefers-reduced-motion: reduce) { .clock::before, .stamp.big { animation: none } }
+
+.h { margin: 6px 0 0; font: 900 19px/1.3 var(--serif); color: var(--navy) }
+.lead, .note { margin: 0; font-size: 14px; color: var(--muted) }
+.note { font-size: 12.5px }
+.note:empty { display: none }
+.panel { display: grid; gap: 10px; padding: 16px; border-radius: 14px; background: var(--card) }
+.panel h3 { margin: 0; font-size: 16px }
+.panel p { margin: 0; font-size: 14px; color: var(--muted) }
+.panel .vstate { color: var(--ink); font-weight: 700 }
+.panel .vstate.ok { color: var(--ok) }
+.primary { display: block; width: 100%; padding: 13px; border: 0; border-radius: 12px; background: var(--navy); color: var(--on-navy); font-weight: 700; text-align: center; cursor: pointer }
+.primary:disabled { opacity: .4; cursor: default }
+.file { position: relative }
+.file input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer }
+.file:focus-within { outline: 2px solid var(--navy); outline-offset: 2px }
+.link { padding: 0; border: 0; background: none; color: var(--navy); text-decoration: underline; cursor: pointer }
+.field { display: grid; gap: 4px; min-width: 0; font-size: 13px; color: var(--muted) }
+.field :is(input, select) { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font-size: 16px }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.mine li { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--card) }
+.mine li.empty { display: block; background: none }
+.mine div { display: grid; flex: 1; min-width: 0 }
+.mine b { font: 700 16px/1.4 var(--serif); color: var(--navy) }
+.mine div span { font-size: 12.5px; color: var(--muted) }
+.uses { font: 500 12px var(--mono); color: var(--muted); white-space: nowrap }
+
+.tabs { position: fixed; inset: auto 0 0; z-index: 3; display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom, 0px); border-top: 1px solid var(--line); background: var(--card) }
+.tabs a { flex: 1; max-width: 160px; padding: 13px 0 12px; text-align: center; text-decoration: none; font-size: 14px; font-weight: 500; color: var(--muted) }
+.tabs a[aria-current="page"] { color: var(--navy); font-weight: 700; box-shadow: inset 0 3px 0 var(--navy) }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><h1>월계1동 쿠폰 모음집</h1><span class="demo">예시 가게 · 데모</span></div>
+    <p class="me" id="me"></p>
+  </header>
+
+  <main>
+    <section data-tab="home">
+      <a class="unlock" id="unlock" href="#verify" hidden><span>학생증·티켓을 인증하면 혜택 <b id="locked"></b>개가 더 열려요</span><span>인증하기 →</span></a>
+      <div class="chips" id="areas" aria-label="위치"></div>
+      <div class="chips" id="cats" aria-label="업종"></div>
+      <p class="count" id="count"></p>
+      <ul class="list" id="list"></ul>
+    </section>
+
+    <section data-tab="verify" hidden>
+      <h2 class="h">내 자격 인증</h2>
+      <p class="lead">인증한 자격에 맞는 혜택만 골라 보여드려요.</p>
+      <article class="panel">
+        <h3>광운대 학생</h3>
+        <p>학생증 사진을 올리면 평일·학기 중 학생 혜택이 열려요.</p>
+        <p class="vstate" id="v-student"></p>
+        <label class="primary file">학생증 촬영하기<input type="file" accept="image/*" id="f-student"></label>
+      </article>
+      <article class="panel">
+        <h3>공연·스케이트 보러 온 외부인</h3>
+        <p>동해문화예술관 티켓이나 아이스링크 영수증을 올리면 오늘 하루 외부인 혜택이 열려요.</p>
+        <label class="field">어디에 다녀오셨나요?<select id="venue"><option>동해문화예술관</option><option>아이스링크</option></select></label>
+        <p class="vstate" id="v-visitor"></p>
+        <label class="primary file">티켓·영수증 촬영하기<input type="file" accept="image/*" id="f-visitor"></label>
+      </article>
+      <article class="panel">
+        <h3>월계 주민 · 누구나</h3>
+        <p>인증 없이 '누구나' 혜택을 바로 쓸 수 있어요.</p>
+      </article>
+      <p class="note">데모라서 어떤 사진이든 바로 승인하고, 사진은 저장하거나 보내지 않아요. <button type="button" class="link" id="reset">인증 초기화</button></p>
+    </section>
+
+    <section data-tab="shop" hidden>
+      <h2 class="h">혜택 올리기</h2>
+      <p class="lead">월계1동은 문 닫는 가게가 여는 가게보다 많아요(128.1%). 학생이 빠지는 주말·저녁엔 공연·스케이트를 마친 외부인에게 혜택을 열어 보세요.</p>
+      <form class="panel" id="post">
+        <label class="field">가게 이름<input id="p-shop" name="shop" required maxlength="20" placeholder="예: 우이천 칼국수"></label>
+        <div class="two">
+          <label class="field">업종<select id="p-cat" name="cat"></select></label>
+          <label class="field">위치<select id="p-area" name="area"></select></label>
+        </div>
+        <label class="field">혜택<input id="p-title" name="title" required maxlength="30" placeholder="예: 2게임 이상 신발 대여 무료"></label>
+        <div class="two">
+          <label class="field">대상<select id="p-who" name="who"><option value="visitor">외부인</option><option value="student">학생</option><option value="all">누구나</option></select></label>
+          <label class="field">요일<select id="p-days" name="days"><option value="weekend">주말</option><option value="weekday">평일</option><option value="all">매일</option></select></label>
+        </div>
+        <div class="two">
+          <label class="field">시작<input id="p-from" name="from" type="time" value="17:00" required></label>
+          <label class="field">끝<input id="p-to" name="to" type="time" value="22:00" required></label>
+        </div>
+        <button class="primary">혜택 올리기</button>
+        <p class="note" id="posted" role="status"></p>
+      </form>
+      <h2 class="h">내가 올린 혜택</h2>
+      <ul class="mine" id="mine"></ul>
+    </section>
+  </main>
+</div>
+
+<nav class="tabs">
+  <a href="#home">혜택</a>
+  <a href="#verify">인증</a>
+  <a href="#shop">사장님</a>
+</nav>
+
+<dialog id="use" aria-labelledby="u-title">
+  <p class="eyebrow">직원 확인 화면</p>
+  <p class="u-shop" id="u-shop"></p>
+  <h2 class="u-title" id="u-title"></h2>
+  <p class="u-proof" id="u-proof"></p>
+  <div class="perf"></div>
+  <p class="u-date" id="u-date"></p>
+  <p class="clock" id="clock"></p>
+  <p class="hint">시계가 흐르면 캡처가 아닌 실제 화면이에요.</p>
+  <button type="button" class="primary" id="u-ok">직원 확인 · 사용 완료</button>
+  <button type="button" class="ghost" id="u-close">닫기</button>
+  <span class="stamp big" id="u-stamp" hidden>사용완료</span>
+</dialog>
+
+<script>
+const SEED = [
+  { id: 's1', shop: '정문 순두부', cat: '식당', area: '정문', title: '점심 정식 1,000원 할인', who: 'student', days: 'weekday', from: '11:00', to: '15:00' },
+  { id: 's2', shop: '우이천 칼국수', cat: '식당', area: '우이천변', title: '칼국수 곱빼기 무료', who: 'visitor', days: 'weekend', from: '11:00', to: '20:00' },
+  { id: 's3', shop: '둑방길 분식', cat: '식당', area: '우이천변', title: '떡볶이 시키면 튀김 1개', who: 'all', days: 'all', from: '11:00', to: '21:00' },
+  { id: 's4', shop: '후문 다방', cat: '카페', area: '후문', title: '아메리카노 1,500원', who: 'student', days: 'weekday', from: '08:00', to: '18:00' },
+  { id: 's5', shop: '역앞 로스터리', cat: '카페', area: '광운대역', title: '공연 끝나고 음료 20% 할인', who: 'visitor', days: 'all', from: '17:00', to: '22:00' },
+  { id: 's6', shop: '광운역 포차', cat: '술집', area: '광운대역', title: '첫 주문에 계란말이 서비스', who: 'all', days: 'all', from: '18:00', to: '02:00' },
+  { id: 's7', shop: '정문 호프', cat: '술집', area: '정문', title: '생맥주 1+1', who: 'visitor', days: 'weekend', from: '17:00', to: '00:00' },
+  { id: 's8', shop: '후문 헤어', cat: '미용실', area: '후문', title: '커트 30% 할인', who: 'student', days: 'weekday', from: '10:00', to: '19:00' },
+  { id: 's9', shop: '월계 미용실', cat: '미용실', area: '우이천변', title: '커트하면 드라이 무료', who: 'all', days: 'all', from: '10:00', to: '20:00' },
+  { id: 's10', shop: '큐 당구클럽', cat: '당구장', area: '정문', title: '시간당 8,000원', who: 'student', days: 'weekday', from: '12:00', to: '17:00' },
+  { id: 's11', shop: '큐 당구클럽', cat: '당구장', area: '정문', title: '1시간 치면 30분 무료', who: 'visitor', days: 'weekend', from: '12:00', to: '23:00' },
+  { id: 's12', shop: '스트라이크 볼링', cat: '볼링장', area: '광운대역', title: '1게임 3,000원', who: 'student', days: 'weekday', from: '13:00', to: '18:00' },
+  { id: 's13', shop: '스트라이크 볼링', cat: '볼링장', area: '광운대역', title: '2게임 이상 신발 대여 무료', who: 'visitor', days: 'weekend', from: '10:00', to: '22:00' },
+  { id: 's14', shop: '역전 코인노래', cat: '노래방', area: '광운대역', title: '1,000원 넣으면 1곡 더', who: 'all', days: 'all', from: '12:00', to: '02:00' },
+];
+const WHO = { student: '학생', visitor: '외부인', all: '누구나' };
+const DAYS = { weekday: '평일', weekend: '주말', all: '매일' };
+const AREAS = ['정문', '후문', '광운대역', '우이천변'];
+const CATS = ['식당', '카페', '술집', '미용실', '당구장', '볼링장', '노래방', '기타'];
+const $ = s => document.querySelector(s);
+
+// ponytail: localStorage keeps everything on this phone; shop posts need a shared DB (Firebase/Supabase) to reach customers
+const S = { mine: [], student: false, visitor: null, used: {}, uses: {} };
+try { Object.assign(S, JSON.parse(localStorage.getItem('wolgye1')) || {}); } catch {}
+function save() {
+  try { localStorage.setItem('wolgye1', JSON.stringify(S)); } catch {}
+  render();
+}
+
+const today = () => new Date().toLocaleDateString('sv'); // YYYY-MM-DD in local time
+const esc = s => String(s).replace(/[&<>"']/g, ch => `&#${ch.charCodeAt(0)};`);
+const span = c => c.from === c.to ? '종일' : `${c.from}–${c.to === '00:00' ? '24:00' : c.to}`;
+const has = who => who === 'all' || (who === 'student' && S.student) || (who === 'visitor' && S.visitor?.day === today());
+const coupons = () => [...S.mine, ...SEED];
+
+// usable at `now`? windows like 18:00–02:00 run past midnight
+function openNow(c, now = new Date()) {
+  const t = now.toTimeString().slice(0, 5);
+  const night = c.from > c.to;
+  const inTime = c.from === c.to || (night ? t >= c.from || t < c.to : t >= c.from && t < c.to);
+  const day = new Date(now - (night && t < c.to ? 864e5 : 0)).getDay(); // after midnight it's still last night's window
+  return inTime && (c.days === 'all' || (c.days === 'weekend') === (day === 0 || day === 6));
+}
+
+let area = '전체', cat = '전체', cur = null;
+
+function chipRow(el, items, set) {
+  el.innerHTML = ['전체', ...items].map(x => `<button type="button" class="chip">${x}</button>`).join('');
+  el.onclick = e => {
+    const b = e.target.closest('.chip');
+    if (b) { set(b.textContent); render(); }
+  };
+}
+chipRow($('#areas'), AREAS, x => area = x);
+chipRow($('#cats'), CATS, x => cat = x);
+$('#p-area').innerHTML = AREAS.map(x => `<option>${x}</option>`).join('');
+$('#p-cat').innerHTML = CATS.map(x => `<option>${x}</option>`).join('');
+
+const card = c => `<li><button type="button" class="coupon${c.used ? ' used' : ''}" data-id="${esc(c.id)}"${c.now && !c.used ? '' : ' disabled'}>
+  <span class="row"><b class="shop">${esc(c.shop)}</b><span class="meta">${esc(c.area)} · ${esc(c.cat)}</span></span>
+  <span class="title">${esc(c.title)}</span>
+  <span class="perf"></span>
+  <span class="row"><span class="who ${esc(c.who)}">${WHO[c.who]}</span><span class="time">${DAYS[c.days]} ${esc(span(c))}</span><span class="state">${c.used ? '오늘 사용함' : c.now ? '지금 사용 가능' : '사용 시간 아님'}</span></span>
+  ${c.used ? '<span class="stamp">사용완료</span>' : ''}</button></li>`;
+
+function render() {
+  const now = new Date(), d = today();
+  for (const b of document.querySelectorAll('.chip')) b.setAttribute('aria-pressed', b.textContent === (b.parentNode.id === 'areas' ? area : cat));
+
+  const list = coupons()
+    .filter(c => has(c.who) && (area === '전체' || c.area === area) && (cat === '전체' || c.cat === cat))
+    .map(c => ({ ...c, used: S.used[c.id] === d, now: openNow(c, now) }))
+    .sort((a, b) => (b.now && !b.used) - (a.now && !a.used));
+  const ready = list.filter(c => c.now && !c.used).length;
+  $('#count').textContent = `${'일월화수목금토'[now.getDay()]}요일 ${now.toTimeString().slice(0, 5)} 기준 · 지금 쓸 수 있는 혜택 ${ready}개`;
+  $('#list').innerHTML = list.map(card).join('') || '<li class="empty">조건에 맞는 혜택이 없어요.</li>';
+
+  const locked = coupons().filter(c => !has(c.who)).length;
+  $('#unlock').hidden = !locked;
+  $('#locked').textContent = locked;
+
+  const v = has('visitor') && S.visitor;
+  $('#me').innerHTML = [S.student && '학생 인증', v && `${esc(v.venue)} 방문 · 오늘`].filter(Boolean)
+    .map(t => `<span class="ok">✓ ${t}</span>`).join('') || '인증 전 · 누구나 혜택만 보여요';
+  $('#v-student').textContent = S.student ? '✓ 인증 완료 · 이번 학기' : '인증 전';
+  $('#v-student').classList.toggle('ok', S.student);
+  $('#v-visitor').textContent = v ? `✓ ${v.venue} · 오늘 23:59까지` : '인증 전';
+  $('#v-visitor').classList.toggle('ok', !!v);
+
+  $('#mine').innerHTML = S.mine.map(c => `<li><div><b>${esc(c.title)}</b><span>${esc(c.shop)} · ${WHO[c.who]} · ${DAYS[c.days]} ${esc(span(c))}</span></div>
+    <span class="uses">사용 ${S.uses[c.id] || 0}회</span><button type="button" class="link" data-del="${esc(c.id)}">내리기</button></li>`).join('')
+    || '<li class="empty">아직 올린 혜택이 없어요.</li>';
+}
+
+// coupon → staff screen
+$('#list').onclick = e => {
+  const b = e.target.closest('.coupon');
+  if (!b || b.disabled) return;
+  cur = coupons().find(c => c.id === b.dataset.id);
+  $('#u-shop').textContent = `${cur.shop} · ${cur.area}`;
+  $('#u-title').textContent = cur.title;
+  $('#u-proof').textContent = { student: '✓ 광운대 학생 인증', visitor: `✓ ${S.visitor?.venue} 방문 인증 · 오늘`, all: '누구나 쓸 수 있는 혜택' }[cur.who];
+  $('#u-stamp').hidden = true;
+  $('#u-ok').disabled = false;
+  tick();
+  $('#use').showModal();
+};
+$('#u-ok').onclick = () => {
+  S.used[cur.id] = today();
+  S.uses[cur.id] = (S.uses[cur.id] || 0) + 1;
+  save();
+  $('#u-stamp').hidden = false;
+  $('#u-ok').disabled = true;
+};
+$('#u-close').onclick = () => $('#use').close();
+
+function tick() {
+  const n = new Date();
+  $('#u-date').textContent = n.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+  $('#clock').textContent = n.toLocaleTimeString('ko-KR', { hour12: false });
+}
+setInterval(tick, 1000);
+setInterval(render, 60000); // keep "지금 사용 가능" honest as time passes
+
+// ponytail: demo approves any photo and never stores it; launch needs staff review or OCR (+ school email for students)
+$('#f-student').onchange = e => {
+  if (e.target.files.length) { S.student = true; save(); location.hash = 'home'; }
+  e.target.value = '';
+};
+$('#f-visitor').onchange = e => {
+  if (e.target.files.length) { S.visitor = { venue: $('#venue').value, day: today() }; save(); location.hash = 'home'; }
+  e.target.value = '';
+};
+$('#reset').onclick = () => { S.student = false; S.visitor = null; save(); };
+
+$('#post').onsubmit = e => {
+  e.preventDefault();
+  const c = { id: 'm' + Date.now(), ...Object.fromEntries(new FormData(e.target)) };
+  S.mine.unshift(c);
+  e.target.reset();
+  $('#posted').textContent = `‘${c.title}’ 혜택을 올렸어요. 혜택 탭에 바로 보여요.`;
+  save();
+};
+$('#mine').onclick = e => {
+  const id = e.target.dataset.del;
+  if (id) { S.mine = S.mine.filter(c => c.id !== id); save(); }
+};
+
+function route() {
+  const tab = ['verify', 'shop'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home';
+  for (const s of document.querySelectorAll('main > section')) s.hidden = s.dataset.tab !== tab;
+  for (const a of document.querySelectorAll('.tabs a')) a.hash === '#' + tab ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current');
+  scrollTo(0, 0);
+}
+onhashchange = route;
+route();
+render();
+
+// self-check: the console stays quiet while the time rules hold
+for (const [c, at, want] of [
+  [{ days: 'weekday', from: '11:00', to: '15:00' }, '2026-10-06T12:00', true],  // Tue lunch
+  [{ days: 'weekday', from: '11:00', to: '15:00' }, '2026-10-03T12:00', false], // Sat
+  [{ days: 'weekend', from: '18:00', to: '02:00' }, '2026-10-05T01:00', true],  // Sun night, past midnight
+  [{ days: 'weekend', from: '18:00', to: '02:00' }, '2026-10-03T01:00', false], // Fri night, past midnight
+  [{ days: 'all', from: '00:00', to: '00:00' }, '2026-10-06T09:00', true],      // all day
+]) console.assert(openNow(c, new Date(at)) === want, 'openNow', c, at);
+</script>

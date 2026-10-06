@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore { match /databases/{database}/documents {
+  function signedIn(){ return request.auth != null; }
+  function ownsShop(shopId){ return signedIn() && get(/databases/$(database)/documents/shops/$(shopId)).data.ownerUid == request.auth.uid; }
+  function isAdmin(){ return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+  function validShop(data){ return data.name is string && data.name.size() > 0 && data.name.size() <= 40 && (!('photoDataUrl' in data) || data.photoDataUrl.size() < 120000); } // name 1~40자, photoDataUrl은 없거나 120000자 미만
+  function validCouponUpdate(data){ return data.title is string && data.title.size() > 0 && data.title.size() <= 40 && data.limit in ['once_per_day', 'once_per_verification', 'unlimited']; }
+  match /users/{uid} { allow read, write: if signedIn() && request.auth.uid == uid; }
+  match /studentNos/{studentNoHash} { allow create: if signedIn() && request.resource.data.uid == request.auth.uid; allow read: if signedIn() && resource.data.uid == request.auth.uid; allow update, delete: if false; }
+  match /shops/{shopId} { allow read: if true; allow create: if (isAdmin() || (signedIn() && request.resource.data.ownerUid == request.auth.uid)) && validShop(request.resource.data); allow update: if (isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid)) && request.resource.data.ownerUid == resource.data.ownerUid && validShop(request.resource.data); allow delete: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid); }
+  match /coupons/{couponId} { allow read: if true; allow create: if isAdmin() || ownsShop(request.resource.data.shopId); allow update: if (isAdmin() || ownsShop(resource.data.shopId)) && request.resource.data.shopId == resource.data.shopId && validCouponUpdate(request.resource.data); allow delete: if isAdmin() || ownsShop(resource.data.shopId); }
+  match /events/{eventId} { allow read: if true; allow write: if isAdmin(); } // admins/{uid} 존재 여부만 운영 권한으로 사용합니다.
+  match /admins/{uid} { allow read: if signedIn() && request.auth.uid == uid; allow write: if false; }
+  match /redemptions/{id} { allow create: if signedIn() && request.resource.data.uid == request.auth.uid && id.matches('^' + request.auth.uid + '_.*') && request.resource.data.couponId is string && request.resource.data.shopId is string && request.resource.data.dayKey is string; allow read: if signedIn() && (resource.data.uid == request.auth.uid || ownsShop(resource.data.shopId)); allow update, delete: if false; } // 제한 단위별 접미사는 규칙에서 재현하기 어려워 id 접두사(본인 uid)만 강제하고, update/delete 금지로 같은 id 재생성(중복)을 막습니다.
+}}

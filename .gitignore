@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env.local
+*.log
+*.tsbuildinfo
+scripts/.kopis-venue.json
+release/
+.npm-cache/
+.npm-logs/
+.firebase/
