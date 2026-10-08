@@ -48,6 +48,9 @@ npx firebase-tools deploy --only hosting,firestore  # 규칙·인덱스도 함�
 
 발표용 데모 공연(오늘·내일 회차)은 운영 봇 계정으로 `node scripts/seed-demo-events.mjs --date 2026-10-09`(날짜 생략 시 오늘), 정리는 `--remove`로 넣고 뺍니다. 앱의 `/dev` 버튼은 `admins/<uid>`가 등록된 계정에서만 동작합니다.
 
+인증 코드는 `node scripts/seed-access-codes.mjs`로 upsert하고 `node scripts/seed-access-codes.mjs --remove`로 삭제합니다.
+코드를 바꾸려면 `scripts/seed-access-codes.mjs`의 테이블을 수정한 후 다시 실행합니다.
+
 ## KOPIS 공연 일정 동기화
 
 KOPIS 공연예술통합전산망의 [OpenAPI 안내](https://kopis.or.kr/por/cs/openapi/openApiList.do?menuId=MNU_00074)에서 활용 신청 후 서비스키를 발급받아 `.env.local`의 `KOPIS_SERVICE_KEY`에 넣습니다. 스크립트는 공식 개발가이드의 공연시설 목록·공연 목록·공연 상세 XML API를 사용하며, 동해문화예술관 시설코드는 `scripts/.kopis-venue.json`에 캐시합니다.

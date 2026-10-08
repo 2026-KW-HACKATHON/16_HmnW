@@ -6,7 +6,7 @@ import { loadEnv, connectFirebase } from './lib/firebase.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const AREAS = ['main_gate', 'back_gate', 'station', 'uicheon'];
-const AUDIENCE_TYPES = ['all', 'student', 'visitor'];
+const AUDIENCE_TYPES = ['all', 'student', 'visitor', 'student_or_visitor'];
 const VENUES = ['donghae', 'icerink'];
 const LIMITS = ['once_per_day', 'once_per_verification', 'unlimited'];
 
