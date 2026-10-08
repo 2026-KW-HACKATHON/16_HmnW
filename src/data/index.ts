@@ -1,4 +1,13 @@
-import type { AuthUser, Coupon, EventDoc, Redemption, Shop, Unsubscribe, UserDoc } from './types';
+import type {
+  AccessCodeResult,
+  AuthUser,
+  Coupon,
+  EventDoc,
+  Redemption,
+  Shop,
+  Unsubscribe,
+  UserDoc,
+} from './types';
 type OnError = (error: unknown) => void;
 export interface DataSource {
   mode: 'local' | 'firebase';
@@ -13,6 +22,9 @@ export interface DataSource {
   };
   students: {
     claim(studentNoHash: string, uid: string): Promise<void>;
+  };
+  accessCodes: {
+    redeem(code: string): Promise<AccessCodeResult>;
   };
   shops: {
     subscribe(cb: (v: Shop[]) => void, onError?: OnError): Unsubscribe;

@@ -24,3 +24,8 @@ export function formatRedemptionTime(date: Date, now = new Date()) {
   if (days === 0) return `오늘 ${time}`;
   return `${date.getMonth() + 1}/${date.getDate()}(${weekdays[date.getDay()]}) ${time}`;
 }
+
+// 기존 시드 데이터의 '11:00-21:00' 같은 하이픈 표기를 'HH:MM–HH:MM'(en dash)로 맞춘다.
+export function formatHours(hours: string | undefined) {
+  return hours?.replace(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/g, '$1–$2');
+}

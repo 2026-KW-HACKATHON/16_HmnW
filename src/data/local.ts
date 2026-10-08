@@ -1,8 +1,9 @@
 import partners from '../../seed/partners.sample.json';
 import events from '../../seed/events.json';
 import { redemptionId } from '../lib/redemption';
+import { accessCodeCandidates, semesterEnd, validateAccessCode } from './accessCodes';
 import type { DataSource } from './index';
-import type { AuthUser, Coupon, EventDoc, Redemption, Shop, UserDoc } from './types';
+import type { AccessCode, AuthUser, Coupon, EventDoc, Redemption, Shop, UserDoc } from './types';
 const KEY = 'wolgye-partners-v1';
 type DB = {
   users: UserDoc[];
@@ -36,6 +37,28 @@ const listeners = {
 };
 const save = () => localStorage.setItem(KEY, JSON.stringify(db));
 const id = () => crypto.randomUUID();
+const demoAccessCodes: Record<string, AccessCode> = {
+  KW2026: {
+    label: '체험 · 광운대 학생',
+    grant: 'student',
+    college: '인공지능융합대학',
+    active: true,
+  },
+  VISIT2026: {
+    label: '체험 · 공연장 방문객',
+    grant: 'visitor',
+    venue: 'donghae',
+    hours: 24,
+    active: true,
+  },
+  'DONGHAE-STAFF': {
+    label: '동해문화예술관 스태프',
+    grant: 'visitor',
+    venue: 'donghae',
+    hours: 12,
+    active: true,
+  },
+};
 const ensure = (u: AuthUser, role: 'customer' | 'owner') => {
   let d = db.users.find((x) => x.id === u.uid);
   if (!d) {
@@ -89,6 +112,41 @@ export const localDataSource: DataSource = {
       if (current && current.uid !== uid) throw { code: 'already-claimed' };
       if (!current) db.studentNos[studentNoHash] = { uid, claimedAt: new Date().toISOString() };
       save();
+    },
+  },
+  accessCodes: {
+    async redeem(code) {
+      const accessCode = accessCodeCandidates(code)
+        .map((candidate) => demoAccessCodes[candidate])
+        .find(Boolean);
+      if (!accessCode) throw { code: 'invalid-code' };
+      validateAccessCode(accessCode);
+      const auth = db.auth;
+      if (!auth) throw { code: 'network-error' };
+      const now = new Date();
+      const data =
+        accessCode.grant === 'student'
+          ? {
+              student: {
+                method: 'code' as const,
+                studentNoMasked: '체험',
+                college: accessCode.college || '',
+                clubs: [],
+                verifiedAt: now.toISOString(),
+                expiresAt: semesterEnd(now),
+              },
+            }
+          : {
+              visitor: {
+                venue: accessCode.venue || ('donghae' as const),
+                verifiedAt: now.toISOString(),
+                expiresAt: new Date(
+                  now.getTime() + (accessCode.hours ?? 24) * 3_600_000,
+                ).toISOString(),
+              },
+            };
+      await localDataSource.users.update(auth.uid, data);
+      return { label: accessCode.label, grant: accessCode.grant };
     },
   },
   shops: {

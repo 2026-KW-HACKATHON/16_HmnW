@@ -26,8 +26,9 @@ import {
 import partners from '../../seed/partners.sample.json';
 import eventsSeed from '../../seed/events.json';
 import { redemptionId } from '../lib/redemption';
+import { accessCodeCandidates, semesterEnd, validateAccessCode } from './accessCodes';
 import type { DataSource } from './index';
-import type { Coupon, EventDoc, Redemption, Shop, UserDoc } from './types';
+import type { AccessCode, Coupon, EventDoc, Redemption, Shop, UserDoc } from './types';
 export const app = initializeApp({
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -110,6 +111,45 @@ export const firebaseDataSource: DataSource = {
           throw { code: 'already-claimed' };
         throw error;
       }
+    },
+  },
+  accessCodes: {
+    async redeem(code) {
+      if (!auth.currentUser) throw { code: 'network-error' };
+      let accessCode: AccessCode | null = null;
+      for (const candidate of accessCodeCandidates(code)) {
+        const snapshot = await getDoc(doc(db, 'accessCodes', candidate));
+        if (snapshot.exists()) {
+          accessCode = snapshot.data() as AccessCode;
+          break;
+        }
+      }
+      if (!accessCode) throw { code: 'invalid-code' };
+      validateAccessCode(accessCode);
+      const now = new Date();
+      const qualification =
+        accessCode.grant === 'student'
+          ? {
+              student: {
+                method: 'code' as const,
+                studentNoMasked: '체험',
+                college: accessCode.college || '',
+                clubs: [],
+                verifiedAt: now.toISOString(),
+                expiresAt: semesterEnd(now),
+              },
+            }
+          : {
+              visitor: {
+                venue: accessCode.venue || ('donghae' as const),
+                verifiedAt: now.toISOString(),
+                expiresAt: new Date(
+                  now.getTime() + (accessCode.hours ?? 24) * 3_600_000,
+                ).toISOString(),
+              },
+            };
+      await setDoc(doc(db, 'users', auth.currentUser.uid), qualification, { merge: true });
+      return { label: accessCode.label, grant: accessCode.grant };
     },
   },
   shops: {

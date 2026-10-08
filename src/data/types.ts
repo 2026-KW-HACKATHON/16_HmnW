@@ -1,13 +1,13 @@
 export type Venue = 'donghae' | 'icerink';
 export type Area = 'main_gate' | 'back_gate' | 'station' | 'uicheon';
 export type Audience = {
-  type: 'all' | 'student' | 'visitor';
+  type: 'all' | 'student' | 'visitor' | 'student_or_visitor';
   colleges?: string[];
   clubs?: string[];
   venues?: Venue[];
 };
 export type StudentQualification = {
-  method: 'card' | 'qr';
+  method: 'card' | 'qr' | 'code';
   studentNoMasked: string;
   college: string;
   clubs: string[];
@@ -79,3 +79,14 @@ export type EventDoc = {
 };
 export type AuthUser = { uid: string; email?: string | null };
 export type Unsubscribe = () => void;
+export type AccessCode = {
+  label: string;
+  grant: 'student' | 'visitor';
+  college?: string;
+  venue?: Venue;
+  hours?: number;
+  until?: string;
+  active: boolean;
+  uses?: number;
+};
+export type AccessCodeResult = Pick<AccessCode, 'label' | 'grant'>;

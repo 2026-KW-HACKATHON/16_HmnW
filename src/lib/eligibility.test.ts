@@ -111,4 +111,38 @@ describe('evaluateEligibility', () => {
       ).eligible,
     ).toBe(false);
   });
+  describe('student_or_visitor', () => {
+    const stu = {
+      method: 'card' as const,
+      studentNoMasked: '2026******',
+      college: '공과대학',
+      clubs: [],
+      verifiedAt: '2026-10-08T00:00:00Z',
+      expiresAt: '2027-01-01T00:00:00Z',
+    };
+    const vis = {
+      venue: 'donghae' as const,
+      verifiedAt: '2026-10-08T00:00:00Z',
+      expiresAt: '2027-01-01T00:00:00Z',
+    };
+    const c = coupon({ audience: { type: 'student_or_visitor', colleges: ['경영대학'] } });
+    const now = at('2026-10-09T12:00:00');
+    it('학생만 통과', () => {
+      const r = evaluateEligibility({ ...user, student: { ...stu, college: '경영대학' } }, c, now);
+      expect(r.eligible && r.via).toBe('student');
+    });
+    it('방문객만 통과', () => {
+      const r = evaluateEligibility({ ...user, visitor: vis }, c, now);
+      expect(r.eligible && r.via).toBe('visitor');
+    });
+    it('둘 다 없으면 불가', () => {
+      const r = evaluateEligibility(user, c, now);
+      expect(r.eligible).toBe(false);
+      expect(r.reason).toBe('학생 인증이 필요해요.');
+    });
+    it('단과대 불일치여도 방문객이면 통과', () => {
+      const r = evaluateEligibility({ ...user, student: stu, visitor: vis }, c, now);
+      expect(r.eligible && r.via).toBe('visitor');
+    });
+  });
 });

@@ -9,6 +9,14 @@ const signInWithEmailAndPassword = vi.fn(
   }),
 );
 const linkWithCredential = vi.fn();
+type FakeSnapshot = {
+  exists(): boolean;
+  data?(): Record<string, unknown>;
+};
+const getDoc = vi.fn(async (..._args: unknown[]): Promise<FakeSnapshot> => ({
+  exists: () => false,
+}));
+const setDoc = vi.fn(async (..._args: unknown[]) => {});
 
 vi.mock('firebase/app', () => ({ initializeApp: vi.fn(() => ({})) }));
 vi.mock('firebase/ai', () => ({
@@ -43,10 +51,10 @@ vi.mock('firebase/firestore', () => ({
   persistentLocalCache: vi.fn(() => ({})),
   persistentMultipleTabManager: vi.fn(() => ({})),
   doc: vi.fn(() => ({})),
-  setDoc: vi.fn(async () => {}),
+  setDoc: (...args: unknown[]) => setDoc(...args),
   collection: vi.fn(() => ({})),
   addDoc: vi.fn(async () => ({ id: 'id' })),
-  getDoc: vi.fn(async () => ({ exists: () => false })),
+  getDoc: (...args: unknown[]) => getDoc(...args),
   getDocs: vi.fn(async () => ({ docs: [] })),
   onSnapshot: vi.fn(() => () => {}),
   query: vi.fn((_collection: unknown, ...constraints: unknown[]) => ({ constraints })),
@@ -58,6 +66,43 @@ beforeEach(() => {
   currentUserRef.current = null;
   signInWithEmailAndPassword.mockClear();
   linkWithCredential.mockReset();
+  getDoc.mockReset().mockResolvedValue({ exists: () => false });
+  setDoc.mockClear();
+});
+
+it('코드를 조회해 학생 자격을 사용자 문서에 저장한다', async () => {
+  currentUserRef.current = { uid: 'student-uid', isAnonymous: true };
+  getDoc.mockResolvedValueOnce({
+    exists: () => true,
+    data: () => ({
+      label: '체험 · 광운대 학생',
+      grant: 'student',
+      college: '인공지능융합대학',
+      active: true,
+    }),
+  });
+  const { firebaseDataSource } = await import('./firebase');
+
+  const result = await firebaseDataSource.accessCodes.redeem(' kw 2026 ');
+
+  expect(result.label).toBe('체험 · 광운대 학생');
+  expect(setDoc).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({
+      student: expect.objectContaining({ method: 'code', studentNoMasked: '체험' }),
+    }),
+    { merge: true },
+  );
+});
+
+it('없는 코드는 invalid-code 오류로 거절한다', async () => {
+  currentUserRef.current = { uid: 'student-uid', isAnonymous: true };
+  getDoc.mockResolvedValue({ exists: () => false });
+  const { firebaseDataSource } = await import('./firebase');
+
+  await expect(firebaseDataSource.accessCodes.redeem('missing')).rejects.toEqual({
+    code: 'invalid-code',
+  });
 });
 
 it('익명 상태에서 기존 이메일로 가입을 시도하면 link 실패 후 signIn으로 폴백한다', async () => {

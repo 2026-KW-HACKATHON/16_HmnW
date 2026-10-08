@@ -5,6 +5,7 @@ export type Eligibility = {
   usableNow: boolean;
   usedToday: boolean;
   used?: boolean;
+  via?: 'student' | 'visitor';
 };
 const dayKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -39,49 +40,43 @@ export function evaluateEligibility(
       usableNow: false,
       usedToday: false,
     };
-  let verificationAt: string | undefined;
-  if (coupon.audience.type === 'student') {
+  const a = coupon.audience;
+  const fail = (reason: string): Eligibility => ({
+    eligible: false,
+    reason,
+    usableNow: false,
+    usedToday: false,
+  });
+  const checkStudent = ():
+    { reason: string; at?: undefined } | { at: string; reason?: undefined } => {
     const q = user.student;
-    if (!q || new Date(q.expiresAt) < now)
-      return {
-        eligible: false,
-        reason: '학생 인증이 필요해요.',
-        usableNow: false,
-        usedToday: false,
-      };
-    if (coupon.audience.colleges?.length && !coupon.audience.colleges.includes(q.college))
-      return {
-        eligible: false,
-        reason: '해당 단과대 대상 혜택이에요.',
-        usableNow: false,
-        usedToday: false,
-      };
-    if (coupon.audience.clubs?.length && !coupon.audience.clubs.some((x) => q.clubs.includes(x)))
-      return {
-        eligible: false,
-        reason: '해당 동아리 대상 혜택이에요.',
-        usableNow: false,
-        usedToday: false,
-      };
-    verificationAt = q.verifiedAt;
-  }
-  if (coupon.audience.type === 'visitor') {
+    if (!q || new Date(q.expiresAt) < now) return { reason: '학생 인증이 필요해요.' };
+    if (a.colleges?.length && !a.colleges.includes(q.college))
+      return { reason: '해당 단과대 대상 혜택이에요.' };
+    if (a.clubs?.length && !a.clubs.some((x) => q.clubs.includes(x)))
+      return { reason: '해당 동아리 대상 혜택이에요.' };
+    return { at: q.verifiedAt };
+  };
+  const checkVisitor = ():
+    { reason: string; at?: undefined } | { at: string; reason?: undefined } => {
     const q = user.visitor;
-    if (!q || new Date(q.expiresAt) < now)
-      return {
-        eligible: false,
-        reason: '방문 인증이 필요해요.',
-        usableNow: false,
-        usedToday: false,
-      };
-    if (coupon.audience.venues?.length && !coupon.audience.venues.includes(q.venue))
-      return {
-        eligible: false,
-        reason: '다른 방문지 대상 혜택이에요.',
-        usableNow: false,
-        usedToday: false,
-      };
-    verificationAt = q.verifiedAt;
+    if (!q || new Date(q.expiresAt) < now) return { reason: '방문 인증이 필요해요.' };
+    if (a.venues?.length && !a.venues.includes(q.venue))
+      return { reason: '다른 방문지 대상 혜택이에요.' };
+    return { at: q.verifiedAt };
+  };
+  let verificationAt: string | undefined;
+  let via: Eligibility['via'];
+  if (a.type === 'student' || a.type === 'visitor') {
+    const r = a.type === 'student' ? checkStudent() : checkVisitor();
+    if (r.reason) return fail(r.reason);
+    verificationAt = r.at;
+  } else if (a.type === 'student_or_visitor') {
+    const st = checkStudent(),
+      vi = checkVisitor();
+    if (st.reason && vi.reason) return fail(st.reason);
+    via = st.reason ? 'visitor' : 'student';
+    verificationAt = st.reason ? vi.at : st.at;
   }
   const usedToday = redemptions.some((r) => r.couponId === coupon.id && r.dayKey === dayKey(now));
   const usedVerification =
@@ -119,5 +114,6 @@ export function evaluateEligibility(
     reason: usableNow ? '지금 사용할 수 있어요.' : '사용 가능한 시간이 아니에요.',
     usableNow,
     usedToday,
+    via,
   };
 }
