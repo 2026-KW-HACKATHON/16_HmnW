@@ -63,3 +63,10 @@ describe('Gemini OCR response normalization', () => {
     ).toBe(3);
   });
 });
+
+describe('Gemini 이름 정규화', () => {
+  it('공백·영문을 제거하고 한글 2~4자를 취한다', () => {
+    expect(normalizeStudentCardResponse({ name: '최 유민' }).name).toBe('최유민');
+    expect(normalizeStudentCardResponse({ name: '최유민 CHOI' }).name).toBe('최유민');
+  });
+});

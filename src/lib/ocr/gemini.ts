@@ -1,6 +1,6 @@
 import { getAI, getGenerativeModel, GoogleAIBackend, Schema } from 'firebase/ai';
 import { preprocessImage } from './preprocess';
-import { COLLEGES, DEPARTMENT_TO_COLLEGE } from './student';
+import { COLLEGES, DEPARTMENT_TO_COLLEGE, normalizeName } from './student';
 
 // 2.5 세대는 신규 프로젝트에 제공 종료(404). 3.1 flash-lite: 학생증 3.6s·티켓 2.9s로 확인(2026-10-08).
 export const GEMINI_MODEL = 'gemini-3.1-flash-lite';
@@ -105,8 +105,7 @@ export function normalizeStudentCardResponse(value: unknown): GeminiStudentCardR
   const source = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
   const digits = text(source.studentNo).replace(/\D/g, '');
   const studentNo = /^\d{10}$/.test(digits) ? digits : '';
-  const candidateName = text(source.name);
-  const name = /^[가-힣]{2,4}$/.test(candidateName) ? candidateName : '';
+  const name = normalizeName(text(source.name));
   const department = text(source.department);
   const candidateCollege = text(source.college);
   const college = COLLEGES.includes(candidateCollege as (typeof COLLEGES)[number])
@@ -220,13 +219,10 @@ async function generate(schema: Schema, prompt: string, image: Blob) {
 
 export async function geminiStudentCard(file: Blob) {
   try {
-    const cropped = await preprocessImage(file, { crop: 'bright' });
-    // 체크카드 겸용 학생증의 카드번호·유효기간·CVC·영문명이 주로 아래쪽에 있어 전송 전에 위 58%만 남긴다.
-    const safeTop = await canvasJpeg(cropped, 0.58);
     const response = await generate(
       studentSchema,
       `광운대학교 학생증 사진이다. 학번(10자리 숫자), 이름(한글), 학부/학과, 단과대(${COLLEGES.join(', ')})를 추출하라. 보이지 않거나 확실하지 않은 문자열은 빈 문자열로 반환하라. 카드번호·유효기간·CVC는 절대 출력하지 말 것.`,
-      safeTop,
+      file,
     );
     return normalizeStudentCardResponse(response);
   } catch {

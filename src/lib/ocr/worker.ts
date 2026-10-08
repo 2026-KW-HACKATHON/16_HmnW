@@ -56,6 +56,25 @@ export async function recognizeImageMulti(
     onProgressRef = undefined;
   }
 }
+
+export async function recognizeImageWithBlocks(
+  image: Blob | string,
+  onProgress?: (value: number) => void,
+) {
+  const worker = await ensureWorker();
+  onProgressRef = onProgress;
+  try {
+    await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
+    return (await worker.recognize(image, {}, { blocks: true, text: true })).data;
+  } catch (error) {
+    const message = String(error);
+    if (/network|fetch|traineddata|load language|download/i.test(message))
+      throw Object.assign(new Error('ocr-download-failed'), { code: 'ocr-download-failed' });
+    throw error;
+  } finally {
+    onProgressRef = undefined;
+  }
+}
 /** 무대 Wi-Fi 대비: 언어팩을 미리 받아 둡니다. 멱등이고 실패해도 무시해요. */
 export function warmupOcr() {
   ensureWorker().catch(() => {});

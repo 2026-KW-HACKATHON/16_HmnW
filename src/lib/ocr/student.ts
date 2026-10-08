@@ -83,14 +83,20 @@ function findStudentNo(text: string, currentYear: number): string {
   return candidates.find(validYear) || candidates[0] || '';
 }
 
+/** 공백·구두점·영문을 제거하고 한글 2~4자만 이름으로 인정한다. */
+export function normalizeName(raw: string): string {
+  const hangul = raw.replace(/[^가-힣]/g, '');
+  return /^[가-힣]{2,4}$/.test(hangul) ? hangul : '';
+}
+
 function findName(text: string, studentNo: string): string {
   if (!studentNo) return '';
   const lines = text.split(/\r?\n/);
   const studentLineIndex = lines.findIndex((line) => line.replace(/\s/g, '').includes(studentNo));
   if (studentLineIndex === -1) return '';
   for (let i = studentLineIndex + 1; i < lines.length; i += 1) {
-    const trimmed = lines[i].trim();
-    if (/^[가-힣]{2,4}$/.test(trimmed) && !FORBIDDEN_NAMES.has(trimmed)) return trimmed;
+    const candidate = normalizeName(lines[i]);
+    if (candidate && !FORBIDDEN_NAMES.has(candidate)) return candidate;
   }
   return '';
 }

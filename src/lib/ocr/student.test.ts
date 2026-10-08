@@ -98,4 +98,9 @@ describe('실물 학생증 레이아웃 파싱', () => {
     const text = '2026123456\n서명\n홍길동';
     expect(parseStudentCard(text, 2026).name).toBe('홍길동');
   });
+
+  it('이름의 공백·영문을 제거해 한글 2~4자로 정규화한다', () => {
+    expect(parseStudentCard('2026123456\n최 유민', 2026).name).toBe('최유민');
+    expect(parseStudentCard('2026123456\n최유민 CHOI', 2026).name).toBe('최유민');
+  });
 });
