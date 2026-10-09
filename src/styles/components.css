@@ -204,7 +204,8 @@
   color: var(--aud-all-text);
   background: var(--aud-all-bg);
 }
-.badge--student {
+.badge--student,
+.badge--student_or_visitor {
   color: var(--aud-student-text);
   background: var(--aud-student-bg);
 }

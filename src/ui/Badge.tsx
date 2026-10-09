@@ -5,6 +5,7 @@ export function Badge({ audience }: { audience: Audience['type'] }) {
     all: ['누구나', UsersIcon],
     student: ['학생', SchoolIcon],
     visitor: ['방문객', TicketIcon],
+    student_or_visitor: ['학생·방문객', SchoolIcon],
   } as const;
   const [label, Glyph] = map[audience];
   return (

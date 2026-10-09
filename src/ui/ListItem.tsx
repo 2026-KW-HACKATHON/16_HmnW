@@ -14,7 +14,6 @@ type TicketCardProps = {
   walkMinutes: number;
   usableNow: boolean;
   used: boolean;
-  goldenTime?: boolean;
   lockedReason?: string;
   stubSecondary?: string;
 };
@@ -30,7 +29,6 @@ export function TicketCard({
   walkMinutes,
   usableNow,
   used,
-  goldenTime = false,
   lockedReason,
   stubSecondary,
 }: TicketCardProps) {
@@ -55,7 +53,6 @@ export function TicketCard({
           <strong className="ticket-card__title">{title}</strong>
           <span className="ticket-card__condition">
             <Badge audience={audience} />
-            {goldenTime && <span className="ticket-card__golden-badge">골든타임</span>}
             <span>{condition}</span>
           </span>
           <span

@@ -220,6 +220,14 @@
   color: var(--color-text-secondary);
   font: var(--t-body2);
 }
+.verify-code__form {
+  margin-top: var(--space-6);
+}
+.verify-code__form input {
+  min-height: var(--input-h);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
 
 .coupon-detail__ticket {
   margin: var(--space-4) var(--gutter) var(--space-6);
@@ -486,6 +494,15 @@
 }
 .hold-button--active .hold-button__fill {
   animation: hold-progress var(--hold-redeem) linear forwards;
+}
+.hold-button:disabled,
+.hold-button[aria-disabled='true'] {
+  pointer-events: none;
+}
+.hold-button:disabled .hold-button__fill,
+.hold-button[aria-disabled='true'] .hold-button__fill {
+  display: none;
+  animation: none;
 }
 .hold-button__label {
   position: relative;
@@ -862,6 +879,10 @@ progress::-moz-progress-bar {
   color: var(--color-primary-text);
   background: var(--color-primary-weak);
   font: var(--t-caption2);
+}
+.auto-tag--manual {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-subtle);
 }
 .location-result {
   display: grid;
