@@ -1,0 +1,27 @@
+[
+  {
+    "id": "event-today-1",
+    "venue": "donghae",
+    "title": "가을 음악회",
+    "startsAt": "2026-10-08T19:30:00+09:00",
+    "hall": "동해문화예술관 대극장"
+  },
+  {
+    "id": "event-today-2",
+    "venue": "donghae",
+    "title": "청춘 연극제",
+    "startsAt": "2026-10-08T15:00:00+09:00"
+  },
+  {
+    "id": "event-tomorrow-1",
+    "venue": "donghae",
+    "title": "재즈 나이트",
+    "startsAt": "2026-10-09T19:00:00+09:00"
+  },
+  {
+    "id": "event-tomorrow-2",
+    "venue": "donghae",
+    "title": "가족 뮤지컬",
+    "startsAt": "2026-10-09T14:00:00+09:00"
+  }
+]

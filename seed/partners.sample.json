@@ -1,0 +1,218 @@
+{
+  "shops": [
+    {
+      "id": "shop-food",
+      "ownerUid": "seed",
+      "name": "월계식당",
+      "category": "식당",
+      "area": "main_gate",
+      "address": "서울 노원구 광운로",
+      "lat": 37.6194,
+      "lng": 127.0584,
+      "phone": "02-000-0001",
+      "hours": "11:00-21:00",
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "shop-cafe",
+      "ownerUid": "seed",
+      "name": "후문카페",
+      "category": "카페",
+      "area": "back_gate",
+      "address": "서울 노원구 광운로",
+      "lat": 37.6201,
+      "lng": 127.0608,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "shop-pub",
+      "ownerUid": "seed",
+      "name": "광운포차",
+      "category": "술집",
+      "area": "station",
+      "address": "서울 노원구 석계로",
+      "lat": 37.6235,
+      "lng": 127.0616,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "shop-hair",
+      "ownerUid": "seed",
+      "name": "월계헤어",
+      "category": "미용실",
+      "area": "uicheon",
+      "address": "서울 노원구 월계로",
+      "lat": 37.6178,
+      "lng": 127.0572,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "shop-pool",
+      "ownerUid": "seed",
+      "name": "큐 당구장",
+      "category": "당구장",
+      "area": "main_gate",
+      "address": "서울 노원구 광운로",
+      "lat": 37.6191,
+      "lng": 127.058,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "shop-bowl",
+      "ownerUid": "seed",
+      "name": "스트라이크 볼링장",
+      "category": "볼링장",
+      "area": "station",
+      "address": "서울 노원구 석계로",
+      "lat": 37.6239,
+      "lng": 127.0615,
+      "createdAt": "2026-10-01T00:00:00Z"
+    }
+  ],
+  "coupons": [
+    {
+      "id": "c1",
+      "shopId": "shop-food",
+      "title": "점심 1,000원 할인",
+      "audience": { "type": "student", "colleges": ["공과대학"] },
+      "days": "weekday",
+      "timeFrom": "11:00",
+      "timeTo": "15:00",
+      "limit": "once_per_day",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "c2",
+      "shopId": "shop-food",
+      "title": "곱빼기 무료",
+      "audience": { "type": "all" },
+      "days": "all",
+      "timeFrom": "11:00",
+      "timeTo": "21:00",
+      "limit": "once_per_day",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "c3",
+      "shopId": "shop-cafe",
+      "title": "아메리카노 20% 할인",
+      "audience": { "type": "visitor", "venues": ["donghae"] },
+      "days": "all",
+      "timeFrom": "17:00",
+      "timeTo": "22:00",
+      "limit": "once_per_verification",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "c4",
+      "shopId": "shop-cafe",
+      "title": "샷 추가 무료",
+      "audience": { "type": "student" },
+      "days": "weekday",
+      "timeFrom": "08:00",
+      "timeTo": "18:00",
+      "limit": "once_per_day",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "c5",
+      "shopId": "shop-pub",
+      "title": "계란말이 서비스",
+      "audience": { "type": "all" },
+      "days": "all",
+      "timeFrom": "18:00",
+      "timeTo": "02:00",
+      "limit": "once_per_day",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "c6",
+      "shopId": "shop-pub",
+      "title": "생맥주 1+1",
+      "audience": { "type": "visitor", "venues": ["icerink"] },
+      "days": "weekend",
+      "timeFrom": "17:00",
+      "timeTo": "23:59",
+      "limit": "once_per_verification",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "c7",
+      "shopId": "shop-hair",
+      "title": "커트 30% 할인",
+      "audience": { "type": "student" },
+      "days": "weekday",
+      "timeFrom": "10:00",
+      "timeTo": "19:00",
+      "limit": "once_per_day",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "c8",
+      "shopId": "shop-hair",
+      "title": "드라이 무료",
+      "audience": { "type": "all" },
+      "days": "all",
+      "timeFrom": "10:00",
+      "timeTo": "20:00",
+      "limit": "unlimited",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "c9",
+      "shopId": "shop-pool",
+      "title": "30분 추가 무료",
+      "audience": { "type": "visitor", "venues": ["icerink"] },
+      "days": "weekend",
+      "timeFrom": "12:00",
+      "timeTo": "23:00",
+      "limit": "once_per_day",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "c10",
+      "shopId": "shop-pool",
+      "title": "시간당 8,000원",
+      "audience": { "type": "student", "clubs": ["총동아리연합회"] },
+      "days": "weekday",
+      "timeFrom": "12:00",
+      "timeTo": "17:00",
+      "limit": "once_per_day",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "c11",
+      "shopId": "shop-bowl",
+      "title": "신발 대여 무료",
+      "audience": { "type": "visitor" },
+      "days": "weekend",
+      "timeFrom": "10:00",
+      "timeTo": "22:00",
+      "limit": "once_per_verification",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "c12",
+      "shopId": "shop-bowl",
+      "title": "1게임 3,000원",
+      "audience": { "type": "student" },
+      "days": "weekday",
+      "timeFrom": "13:00",
+      "timeTo": "18:00",
+      "limit": "once_per_day",
+      "active": true,
+      "createdAt": "2026-10-01T00:00:00Z"
+    }
+  ]
+}
