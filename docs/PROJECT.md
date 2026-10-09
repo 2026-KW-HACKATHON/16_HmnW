@@ -114,7 +114,7 @@
 ## 6. 조사·근거 자료
 - `docs/domain.md`: 동해문화예술관(광운로 21, 37.6202512,127.0573526) · 아이스링크(18m 옆, 평일 15:00–16:50/주말 12:00–15:50) · 정문·후문·광운대역 좌표(역까지 549m) · 단과대 9개 · KOPIS/Firebase/tesseract 사실 · 샘플 티켓·영수증 출처.
 - `src/data/clubs.ts`: 광운대 공식 홈페이지 중앙동아리 6분과 48개(2026-10-08).
-- `docs/PITCH.md`: 심사 기준별 근거·예상 질문 답변·로드맵. `docs/DEMO.md`: 90초 데모 시나리오·전날 준비. `docs/qr-live.png`: 라이브 주소 QR.
+- `docs/qr-live.png`: 라이브 주소 QR.
 - **실제 제휴 리스트(인공지능융합대학 학생회, 인스타 `kw_aiconv_alliance`)**: 프로필의 네이버 제휴지도에서 가게 34곳(주소·좌표 확정), 게시물 캡션에서 혜택이 확인된 11곳·혜택 12개를 `seed/partners.json`으로 만들어 **Firestore에 투입 완료**(audience: 학생 · 인공지능융합대학, 대부분 ~2026-12-31). 혜택 미확인 23곳은 `seed/partners.draft.json`에만 두고 미투입. 수집 표·출처·확인 필요 목록: `docs/partners-aiconv.md`.
 
 ---
