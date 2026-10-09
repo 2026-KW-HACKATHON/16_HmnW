@@ -4,8 +4,8 @@ import { useSession } from '../app/Session';
 import { sha256Hex } from '../lib/hash';
 import { LIVE_SCAN_ENABLED } from '../lib/flags';
 import { startStudentLiveScan } from '../lib/ocr/live';
+import { prepareStudentCardImage } from '../lib/ocr/cardMask';
 import { geminiStudentCard } from '../lib/ocr/gemini';
-import { preprocessImage } from '../lib/ocr/preprocess';
 import { assessStudentCard, COLLEGES, parseStudentCard, redactSensitive } from '../lib/ocr/student';
 import { PSM } from 'tesseract.js';
 import { recognizeImageMulti } from '../lib/ocr/worker';
@@ -36,11 +36,29 @@ export default function StudentCard() {
   const [name, setName] = useState('');
   const [college, setCollege] = useState<(typeof COLLEGES)[number]>('전자정보공과대학');
   const [clubs, setClubs] = useState<string[]>([]);
+  // OCR가 못 읽은 칸은 사용자가 직접 입력할 수 있어야 하고, 입력 중에 다시 잠기면 안 되므로 '인식된 값' 기준으로 판단
+  const [recognized, setRecognized] = useState({ studentNo: '', name: '' });
+  const manualValid = /^\d{10}$/.test(studentNo) && /^[가-힣]{2,4}$/.test(name);
+  const tag = (value: string) =>
+    engine &&
+    (value && assessment.confidence === 'high' ? (
+      <small className="auto-tag">인식됨</small>
+    ) : value ? (
+      <small className="auto-tag auto-tag--manual">확인 필요</small>
+    ) : (
+      <small className="auto-tag auto-tag--manual">직접 입력</small>
+    ));
   const assessment = assessStudentCard({ studentNo, name, college }, rawText);
+  // 신뢰도가 낮거나(엉뚱한 값이 잡힘) OCR가 못 읽은 칸은 사용자가 고칠 수 있어야 한다
+  const lowConfidence = assessment.confidence === 'low';
+  const studentNoEditable = session.presentation || lowConfidence || !recognized.studentNo;
+  const nameEditable = session.presentation || lowConfidence || !recognized.name;
+  const manualEntry = lowConfidence || !recognized.studentNo || !recognized.name;
 
   const applyResult = (parsed: ReturnType<typeof parseStudentCard>, text: string) => {
     setStudentNo(parsed.studentNo);
     setName(parsed.name);
+    setRecognized({ studentNo: parsed.studentNo, name: parsed.name });
     if (parsed.college) setCollege(parsed.college as (typeof COLLEGES)[number]);
     setRawText(text);
   };
@@ -85,8 +103,9 @@ export default function StudentCard() {
     setMessage('사진을 읽고 있어요');
     setFallbackNotice(false);
     try {
+      const prepared = await prepareStudentCardImage(file, (value) => setProgress(value * 0.8));
       try {
-        const parsed = await geminiStudentCard(file);
+        const parsed = await geminiStudentCard(prepared.geminiImage);
         const summary = JSON.stringify(
           { ...parsed, school: parsed.isKwangwoon ? '광운대학교' : '' },
           null,
@@ -101,12 +120,10 @@ export default function StudentCard() {
       } catch {
         setFallbackNotice(true);
       }
-      const image = await preprocessImage(file, { crop: 'bright' });
-      const { text } = await recognizeImageMulti(
-        image,
-        [PSM.SPARSE_TEXT, PSM.SINGLE_BLOCK],
-        setProgress,
+      const block = await recognizeImageMulti(prepared.orientedImage, [PSM.SINGLE_BLOCK], (value) =>
+        setProgress(0.8 + value * 0.2),
       );
+      const text = `${prepared.sparseText}\n${block.text}`;
       applyResult(parseStudentCard(text), redactSensitive(text));
       setEngine('tesseract');
       setMessage('인식한 내용을 확인해 주세요');
@@ -269,26 +286,35 @@ export default function StudentCard() {
           <h1 className="screen__title">읽은 내용을 확인해 주세요</h1>
           {assessment.confidence === 'low' && (
             <div className="status-box status-box--danger">
-              학생증이 선명하게 인식되지 않았어요. 다시 스캔해 주세요
+              학생증이 선명하게 인식되지 않았어요. 학생증을 세로로 놓고, 그림자 없이 가까이서 다시
+              찍어 주세요
             </div>
+          )}
+          {assessment.confidence === 'low' && (
+            <Button variant="secondary" size="l" full onClick={() => setStep(1)}>
+              다시 찍기
+            </Button>
           )}
           <form className="form" onSubmit={submit}>
             <label>
-              <span>학번 {engine && <small className="auto-tag">인식됨</small>}</span>
+              <span>학번 {tag(studentNo)}</span>
               <input
                 value={studentNo}
-                onChange={(e) => setStudentNo(e.target.value)}
-                readOnly={!session.presentation}
+                onChange={(e) => setStudentNo(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                readOnly={!studentNoEditable}
+                placeholder="숫자 10자리"
                 inputMode="numeric"
                 required
               />
             </label>
             <label>
-              <span>이름 {engine && <small className="auto-tag">인식됨</small>}</span>
+              <span>이름 {tag(name)}</span>
               <input
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                readOnly={!session.presentation}
+                onChange={(e) => setName(e.target.value.trim())}
+                readOnly={!nameEditable}
+                placeholder="한글 2~4자"
+                pattern="[가-힣]{2,4}"
                 required
               />
             </label>
@@ -314,7 +340,10 @@ export default function StudentCard() {
               size="l"
               full
               disabled={
-                !!session.authError || (!session.presentation && assessment.confidence === 'low')
+                !!session.authError ||
+                (!session.presentation &&
+                  assessment.confidence === 'low' &&
+                  !(manualEntry && manualValid))
               }
             >
               이 내용으로 인증하기

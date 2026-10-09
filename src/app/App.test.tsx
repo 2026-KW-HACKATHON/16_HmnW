@@ -85,6 +85,46 @@ it('혜택 상세에서 길게 눌러 사용하고 내 쿠폰 기록을 표시�
   expect(console.warn).not.toHaveBeenCalled();
 });
 
+it('사용 완료 후 길게 누르기 이벤트를 보내도 사용 기록을 추가하지 않는다', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 9, 8, 12, 0, 0));
+  const create = vi.fn(async () => 'redemption-1');
+  const source: DataSource = {
+    ...localDataSource,
+    redemptions: {
+      ...localDataSource.redemptions,
+      create,
+      subscribe: (_uid, cb) => {
+        cb([]);
+        return () => {};
+      },
+    },
+  };
+  render(
+    <MemoryRouter initialEntries={['/coupon/c2/use']}>
+      <SessionProvider source={Promise.resolve(source)}>
+        <App />
+      </SessionProvider>
+    </MemoryRouter>,
+  );
+  const hold = await screen.findByRole('button', { name: /1.5초/ });
+  await act(async () => {
+    fireEvent.pointerDown(hold);
+    await new Promise((resolve) => setTimeout(resolve, 1600));
+  });
+  const completed = (await screen.findByRole('button', {
+    name: '사용 완료됨',
+  })) as HTMLButtonElement;
+  expect(create).toHaveBeenCalledTimes(1);
+  expect(completed.disabled).toBe(true);
+
+  fireEvent.pointerDown(completed);
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 1600));
+  });
+  expect(create).toHaveBeenCalledTimes(1);
+});
+
 it('쿠폰 사용 기록 저장이 실패하면 사용 완료로 바뀌지 않고 실패 문구를 보여준다', async () => {
   const future = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
   const failingDataSource: DataSource = {

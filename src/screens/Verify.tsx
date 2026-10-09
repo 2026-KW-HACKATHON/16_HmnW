@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { warmupOcr } from '../lib/ocr/worker';
 import { AppBar } from '../ui/AppBar';
-import { ChevronRightIcon, QrIcon, SchoolIcon, TicketIcon } from '../ui/icons';
+import { ChevronRightIcon, LockIcon, QrIcon, SchoolIcon, TicketIcon } from '../ui/icons';
 import { venueName } from './shared';
 
 export default function Verify() {
@@ -58,6 +58,17 @@ export default function Verify() {
               <ChevronRightIcon />
             </Link>
           ))}
+        </section>
+        <section className="verify__section">
+          <h2>코드가 있나요?</h2>
+          <Link className="selection-row" to="/verify/code">
+            <LockIcon />
+            <span>
+              <strong>코드로 인증하기</strong>
+              <small>체험용·스태프용</small>
+            </span>
+            <ChevronRightIcon />
+          </Link>
         </section>
       </div>
     </section>

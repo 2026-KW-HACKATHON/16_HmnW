@@ -11,8 +11,14 @@ const recognizeImageMulti = vi.fn();
 vi.mock('../lib/ocr/gemini', () => ({
   geminiStudentCard: (...args: unknown[]) => geminiStudentCard(...args),
 }));
-vi.mock('../lib/ocr/preprocess', () => ({
-  preprocessImage: vi.fn(async (file: Blob) => file),
+vi.mock('../lib/ocr/cardMask', () => ({
+  prepareStudentCardImage: vi.fn(async (file: Blob) => ({
+    geminiImage: file,
+    orientedImage: file,
+    sparseText: '',
+    rotation: 0,
+    maskedCardNumber: true,
+  })),
 }));
 vi.mock('../lib/ocr/worker', () => ({
   recognizeImageMulti: (...args: unknown[]) => recognizeImageMulti(...args),

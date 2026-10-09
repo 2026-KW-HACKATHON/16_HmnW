@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Home from '../screens/Home';
 import Nearby from '../screens/Nearby';
 import Verify from '../screens/Verify';
+import VerifyCode from '../screens/VerifyCode';
 import StudentCard from '../screens/StudentCard';
 import StudentQr from '../screens/StudentQr';
 import Visitor from '../screens/Visitor';
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/nearby" element={<Nearby />} />
           <Route path="/coupons" element={<MyCoupons />} />
           <Route path="/verify" element={<Verify />} />
+          <Route path="/verify/code" element={<VerifyCode />} />
           <Route path="/verify/student/card" element={<StudentCard />} />
           <Route path="/verify/student/qr" element={<StudentQr />} />
           <Route path="/verify/visitor/:venue" element={<Visitor />} />
