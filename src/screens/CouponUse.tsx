@@ -56,19 +56,21 @@ export default function CouponUse() {
   if (!coupon || !shop) return <Navigate to="/" replace />;
 
   const days = Array.isArray(coupon.days) ? coupon.days.join('·') : dayLabel[coupon.days];
+  const status =
+    session.user && evaluateEligibility(session.user, coupon, clock, session.redemptions);
+  const kind = coupon.audience.type === 'student_or_visitor' ? status?.via : coupon.audience.type;
   const qualification =
-    coupon.audience.type === 'student'
+    kind === 'student'
       ? session.user?.student?.college
         ? `학생 인증 · ${session.user.student.college}`
         : '학생 인증'
-      : coupon.audience.type === 'visitor'
+      : kind === 'visitor'
         ? `${session.user?.visitor?.venue === 'icerink' ? '아이스링크' : '동해문화예술관'} 방문 · 오늘`
         : '별도 인증 없이 사용할 수 있어요';
   // 방금 이 화면에서 사용한 경우(pending/done)는 완료 화면을 우선합니다.
-  const status =
-    session.user && evaluateEligibility(session.user, coupon, clock, session.redemptions);
   const used = !done && !pending && !!status?.used;
   const usedMessage = status?.usedToday ? '오늘 이미 사용한 혜택이에요' : '이미 사용한 혜택이에요';
+  const blocked = used || !!session.authError;
   const alreadyRedeemed = error === 'already-redeemed';
   const liveDots = [0, 1, 2]
     .map((index) => (clock.getSeconds() % 3 === index ? '●' : '○'))
@@ -83,9 +85,9 @@ export default function CouponUse() {
     setPending(true);
     const now = new Date();
     const verificationAt =
-      coupon.audience.type === 'student'
+      kind === 'student'
         ? session.user?.student?.verifiedAt
-        : coupon.audience.type === 'visitor'
+        : kind === 'visitor'
           ? session.user?.visitor?.verifiedAt
           : undefined;
     try {
@@ -111,7 +113,7 @@ export default function CouponUse() {
   };
 
   const start = () => {
-    if (timer.current !== undefined || pending) return;
+    if (done || pending || blocked || timer.current !== undefined) return;
     setMessage('');
     setHolding(true);
     timer.current = window.setTimeout(() => {
@@ -204,8 +206,15 @@ export default function CouponUse() {
         {done ? (
           <>
             <p className="fixed-cta__help">{formatClock(clock)}에 사용 완료</p>
-            <Button variant="secondary" size="l" full onClick={() => navigate('/coupons')}>
-              내 쿠폰 보기
+            <Button
+              className="hold-button"
+              variant="secondary"
+              size="l"
+              full
+              disabled
+              aria-disabled="true"
+            >
+              사용 완료됨
             </Button>
           </>
         ) : shop.pinHash ? (
@@ -222,7 +231,8 @@ export default function CouponUse() {
               size="l"
               full
               onClick={redeem}
-              disabled={pending || !!session.authError || used}
+              disabled={pending || blocked}
+              aria-disabled={pending || blocked}
             >
               {pending ? '처리 중…' : 'PIN으로 사용 완료'}
             </Button>

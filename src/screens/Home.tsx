@@ -4,32 +4,17 @@ import { useSession } from '../app/Session';
 import type { Coupon, Shop, UserDoc, Venue } from '../data/types';
 import { AREA_POINTS, VENUE_POINTS } from '../data/places';
 import { evaluateEligibility } from '../lib/eligibility';
-import { goldenWindow, GOLDEN_TIME_MINUTES } from '../lib/goldenTime';
-import {
-  distanceMeters,
-  distanceToPolylineMeters,
-  formatDistance,
-  progressAlongPolylineMeters,
-} from '../lib/geo';
+import { distanceMeters, formatDistance } from '../lib/geo';
 import { AppBar } from '../ui/AppBar';
 import { Chip } from '../ui/Chip';
 import { EmptyState } from '../ui/EmptyState';
-import { ClockIcon, MapPinIcon, ShieldIcon } from '../ui/icons';
+import { MapPinIcon, ShieldIcon } from '../ui/icons';
 import { TicketCard, TicketSkeleton } from '../ui/ListItem';
 import { areaName } from './shared';
 
 const categories = ['전체', '식당', '카페', '술집', '미용실', '당구장', '볼링장'];
-const HOMEWARD_ROUTE = [VENUE_POINTS.donghae, AREA_POINTS.back_gate, AREA_POINTS.station];
-const HOMEWARD_STORAGE_KEY = 'nearby-homeward-only';
 
 type CouponRow = { coupon: Coupon; shop: Shop };
-
-const pad = (value: number) => String(value).padStart(2, '0');
-const clock = (date: Date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-const countdown = (milliseconds: number) => {
-  const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
-  return `${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`;
-};
 
 function lockedReason(user: UserDoc, coupon: Coupon, reason: string, now: Date) {
   if (coupon.audience.type === 'student') {
@@ -37,17 +22,10 @@ function lockedReason(user: UserDoc, coupon: Coupon, reason: string, now: Date) 
       ? '학생 인증 만료'
       : '학생 인증 필요';
   }
+  if (coupon.audience.type === 'student_or_visitor') return '학생 또는 방문객 인증 필요';
   if (coupon.audience.type === 'visitor') return '방문객 인증 필요(동해문화예술관·아이스링크)';
   if (reason.includes('인증')) return '조건 확인 필요';
   return '조건 확인 필요';
-}
-
-function readHomewardMode() {
-  try {
-    return localStorage.getItem(HOMEWARD_STORAGE_KEY) === '1';
-  } catch {
-    return false;
-  }
 }
 
 export default function Home() {
@@ -64,15 +42,9 @@ export function Benefits({ nearby }: { nearby: boolean }) {
     session.location ? 'current' : 'donghae',
   );
   const [locationMessage, setLocationMessage] = useState('');
-  const [homewardOnly, setHomewardOnly] = useState(readHomewardMode);
-  const [now, setNow] = useState(() => new Date());
+  const [now] = useState(() => new Date());
   const [focusShopId, setFocusShopId] = useState<string | null>(null);
   const uses = session.redemptions;
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     // 매장 QR 포스터로 들어온 손님(?shop=)을 그 가게에 포커스한다. 쿼리를 최우선으로 읽고
@@ -124,25 +96,15 @@ export function Benefits({ nearby }: { nearby: boolean }) {
             })
             .filter(({ shop }) => category === '전체' || shop.category === category)
             .filter(({ shop }) => area === '전체' || shop.area === area)
-            .filter(
-              ({ shop }) =>
-                !nearby || !homewardOnly || distanceToPolylineMeters(shop, HOMEWARD_ROUTE) <= 120,
-            )
-            .sort((a, b) => {
-              if (nearby && homewardOnly) {
-                return (
-                  progressAlongPolylineMeters(a.shop, HOMEWARD_ROUTE) -
-                  progressAlongPolylineMeters(b.shop, HOMEWARD_ROUTE)
-                );
-              }
-              return nearby
+            .sort((a, b) =>
+              nearby
                 ? distanceMeters(origin, a.shop) - distanceMeters(origin, b.shop)
                 : Number(evaluateEligibility(session.user!, b.coupon, now, uses).usableNow) -
                     Number(evaluateEligibility(session.user!, a.coupon, now, uses).usableNow) ||
-                    distanceMeters(origin, a.shop) - distanceMeters(origin, b.shop);
-            })
+                  distanceMeters(origin, a.shop) - distanceMeters(origin, b.shop),
+            )
         : [],
-    [allRows, session.user, now, uses, category, area, nearby, homewardOnly, origin],
+    [allRows, session.user, now, uses, category, area, nearby, origin],
   );
 
   const lockedRows = useMemo(
@@ -168,31 +130,16 @@ export function Benefits({ nearby }: { nearby: boolean }) {
           .filter(({ row, locked }) => !locked || row.coupon.active)
       : [];
 
-  const golden = goldenWindow(now, session.events);
-  const visitorBenefitCount = allRows.filter(({ coupon }) => {
-    if (!coupon.active || coupon.audience.type !== 'visitor') return false;
-    if (session.user?.visitor) {
-      return evaluateEligibility(session.user, coupon, now, uses).usableNow;
-    }
-    const venue = coupon.audience.venues?.[0] || 'donghae';
-    const previewUser: UserDoc = {
-      id: 'preview',
-      role: 'customer',
-      createdAt: now.toISOString(),
-      visitor: {
-        venue,
-        verifiedAt: now.toISOString(),
-        expiresAt: new Date(now.getTime() + 86_400_000).toISOString(),
-      },
-    };
-    return evaluateEligibility(previewUser, coupon, now, []).usableNow;
-  }).length;
-
-  const qualification = session.user?.student
-    ? '학생 인증됨'
-    : session.user?.visitor
-      ? '방문객 인증됨'
-      : '인증하기';
+  const hasStudent = !!session.user?.student && new Date(session.user.student.expiresAt) >= now,
+    hasVisitor = !!session.user?.visitor && new Date(session.user.visitor.expiresAt) >= now;
+  const qualification =
+    hasStudent && hasVisitor
+      ? '학생·방문객 인증됨'
+      : hasStudent
+        ? '학생 인증됨'
+        : hasVisitor
+          ? '방문객 인증됨'
+          : '인증하기';
   const referenceLabel = nearby
     ? reference === 'current' && session.location
       ? '현재 위치'
@@ -224,22 +171,9 @@ export function Benefits({ nearby }: { nearby: boolean }) {
     );
   }
 
-  function toggleHomeward() {
-    setHomewardOnly((current) => {
-      const next = !current;
-      try {
-        localStorage.setItem(HOMEWARD_STORAGE_KEY, next ? '1' : '0');
-      } catch {
-        // 저장소를 사용할 수 없어도 현재 세션의 필터는 유지합니다.
-      }
-      return next;
-    });
-  }
-
   const renderCard = ({ coupon, shop }: CouponRow, locked = false) => {
     const status = evaluateEligibility(session.user!, coupon, now, uses);
     const meters = distanceMeters(origin, shop);
-    const stationMinutes = Math.max(1, Math.round(distanceMeters(shop, AREA_POINTS.station) / 80));
     const days =
       coupon.days === 'all'
         ? '매일'
@@ -261,9 +195,7 @@ export function Benefits({ nearby }: { nearby: boolean }) {
         walkMinutes={Math.max(1, Math.round(meters / 80))}
         usableNow={status.usableNow}
         used={Boolean(status.used)}
-        goldenTime={golden.state === 'active' && coupon.audience.type === 'visitor'}
         lockedReason={locked ? lockedReason(session.user!, coupon, status.reason, now) : undefined}
-        stubSecondary={nearby && homewardOnly ? `역까지 ${stationMinutes}분` : undefined}
       />
     );
   };
@@ -293,7 +225,7 @@ export function Benefits({ nearby }: { nearby: boolean }) {
         </div>
       ) : (
         <>
-          {!session.user.student && !session.user.visitor && lockedRows.length > 0 && (
+          {!hasStudent && !hasVisitor && lockedRows.length > 0 && (
             <Link className="verification-banner" to="/verify">
               <ShieldCopy />
               <span>
@@ -301,37 +233,6 @@ export function Benefits({ nearby }: { nearby: boolean }) {
                 <small>학생증이나 방문 티켓을 준비해 주세요</small>
               </span>
             </Link>
-          )}
-          {!nearby && golden.state !== 'none' && golden.endsAt && (
-            <section className={`golden-card golden-card--${golden.state}`}>
-              {golden.state === 'active' ? (
-                <>
-                  <strong>
-                    <ClockIcon size={20} />
-                    {golden.source === 'rink'
-                      ? `스케이트 끝나고 골든타임 · ${clock(golden.endsAt)}까지`
-                      : `공연 끝나고 골든타임 · ${golden.title}`}
-                  </strong>
-                  <span className="golden-card__countdown num">{countdown(golden.until)}</span>
-                  <small>
-                    {session.user.visitor ? '지금' : '인증하면'} {visitorBenefitCount}개 혜택이 열려
-                    있어요
-                  </small>
-                </>
-              ) : (
-                <>
-                  <strong>
-                    <ClockIcon size={20} />
-                    오늘 {clock(
-                      new Date(golden.endsAt.getTime() - GOLDEN_TIME_MINUTES * 60_000),
-                    )}{' '}
-                    {golden.source === 'rink' ? '스케이트 종료' : `${golden.title} 종료`} 후 60분
-                    골든타임
-                  </strong>
-                  <small>공연 있는 날은 공연 종료 후에도 열려요</small>
-                </>
-              )}
-            </section>
           )}
           <div className="chip-row" aria-label="업종 필터">
             {categories.map((item) => (
@@ -362,16 +263,6 @@ export function Benefits({ nearby }: { nearby: boolean }) {
                   정문
                 </button>
               </div>
-              <div className="homeward-filter">
-                <Chip pressed={homewardOnly} onClick={toggleHomeward}>
-                  귀갓길만
-                </Chip>
-              </div>
-              {homewardOnly && (
-                <p className="homeward-guide">
-                  공연장에서 광운대역까지 549m, 걸어서 6분 길 위의 가게예요
-                </p>
-              )}
               {locationMessage && (
                 <p className="reference-message" role="status">
                   {locationMessage}
@@ -416,16 +307,8 @@ export function Benefits({ nearby }: { nearby: boolean }) {
               <div className="ticket-list__empty">
                 <div className="ticket-list__empty-body">
                   <EmptyState
-                    title={
-                      nearby && homewardOnly
-                        ? '귀갓길 120m 안에 아직 제휴 가게가 없어요'
-                        : '조건에 맞는 혜택이 없어요'
-                    }
-                    description={
-                      nearby && homewardOnly
-                        ? '귀갓길 필터를 끄면 주변의 다른 혜택을 볼 수 있어요'
-                        : '인증 상태나 필터를 바꾸면 다른 혜택을 볼 수 있어요'
-                    }
+                    title="조건에 맞는 혜택이 없어요"
+                    description="인증 상태나 필터를 바꾸면 다른 혜택을 볼 수 있어요"
                   />
                 </div>
                 <span className="ticket-list__empty-stub" aria-hidden="true" />

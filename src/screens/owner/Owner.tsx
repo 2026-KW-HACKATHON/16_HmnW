@@ -1,13 +1,7 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useSession } from '../../app/Session';
 import type { Area, Audience, Coupon, Redemption, Venue } from '../../data/types';
 import { geocodeAddress } from '../../lib/geocode';
-import {
-  GOLDEN_TIME_MINUTES,
-  PERFORMANCE_DURATION_MINUTES,
-  RINK_WEEKDAY_CLOSE,
-  RINK_WEEKEND_CLOSE,
-} from '../../lib/goldenTime';
 import { sha256Hex } from '../../lib/hash';
 import { COLLEGES } from '../../lib/ocr/student';
 import { Chip } from '../../ui/Chip';
@@ -31,7 +25,7 @@ function ownerLoginErrorMessage(code: string | undefined) {
 
 export function audienceSummary(a: Audience): string {
   if (a.type === 'all') return '누구나';
-  if (a.type === 'student') {
+  if (a.type === 'student' || a.type === 'student_or_visitor') {
     const parts: string[] = [];
     if (a.colleges?.length)
       parts.push(
@@ -39,6 +33,10 @@ export function audienceSummary(a: Audience): string {
       );
     if (a.clubs?.length)
       parts.push(a.clubs.length > 1 ? `${a.clubs[0]} 외 ${a.clubs.length - 1}` : a.clubs[0]);
+    if (a.type === 'student_or_visitor') {
+      if (a.venues?.length === 1) parts.push(venueShortName[a.venues[0]]);
+      return parts.length ? `학생·방문객 · ${parts.join(' · ')}` : '학생·방문객';
+    }
     return parts.length ? `학생 · ${parts.join(', ')}` : '학생';
   }
   if (a.venues?.length === 1) return `방문객 · ${venueShortName[a.venues[0]]}`;
@@ -57,42 +55,8 @@ const audienceTypeLabel: Record<Audience['type'], string> = {
   student: '학생',
   visitor: '방문객',
   all: '누구나',
+  student_or_visitor: '학생·방문객',
 };
-
-// 공연 시작은 가정 값(데모용)이고, 실제 길이는 goldenTime.ts의 공연 길이 상수로 계산한다.
-const SHOW_STARTS_AT = '19:30';
-const addMinutesToClock = (time: string, minutes: number) => {
-  const [hour, minute] = time.split(':').map(Number);
-  const total = (hour * 60 + minute + minutes + 24 * 60) % (24 * 60);
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-};
-
-export type GoldenPresetKey = 'rink-weekday' | 'rink-weekend' | 'show' | 'weekend-evening';
-export type GoldenPreset = {
-  days: 'all' | 'weekday' | 'weekend';
-  timeFrom: string;
-  timeTo: string;
-  audience?: Audience['type'];
-};
-export function goldenTimePreset(key: GoldenPresetKey): GoldenPreset {
-  if (key === 'rink-weekday')
-    return {
-      days: 'weekday',
-      timeFrom: RINK_WEEKDAY_CLOSE,
-      timeTo: addMinutesToClock(RINK_WEEKDAY_CLOSE, GOLDEN_TIME_MINUTES),
-    };
-  if (key === 'rink-weekend')
-    return {
-      days: 'weekend',
-      timeFrom: RINK_WEEKEND_CLOSE,
-      timeTo: addMinutesToClock(RINK_WEEKEND_CLOSE, GOLDEN_TIME_MINUTES),
-    };
-  if (key === 'show') {
-    const timeFrom = addMinutesToClock(SHOW_STARTS_AT, PERFORMANCE_DURATION_MINUTES);
-    return { days: 'all', timeFrom, timeTo: addMinutesToClock(timeFrom, GOLDEN_TIME_MINUTES) };
-  }
-  return { days: 'weekend', timeFrom: '17:00', timeTo: '22:00', audience: 'visitor' };
-}
 
 export default function Owner() {
   const s = useSession(),
@@ -102,16 +66,6 @@ export default function Owner() {
     [colleges, setColleges] = useState<string[]>([]),
     [clubs, setClubs] = useState<string[]>([]),
     [venues, setVenues] = useState<Venue[]>(['donghae', 'icerink']);
-  const daysRef = useRef<HTMLSelectElement>(null),
-    timeFromRef = useRef<HTMLInputElement>(null),
-    timeToRef = useRef<HTMLInputElement>(null);
-  function applyGoldenPreset(key: GoldenPresetKey) {
-    const preset = goldenTimePreset(key);
-    if (daysRef.current) daysRef.current.value = preset.days;
-    if (timeFromRef.current) timeFromRef.current.value = preset.timeFrom;
-    if (timeToRef.current) timeToRef.current.value = preset.timeTo;
-    if (preset.audience) setAudienceType(preset.audience);
-  }
   const owner = s.user?.role === 'owner',
     myShops = s.shops.filter((shop) => shop.ownerUid === s.auth?.uid),
     myIds = myShops.map((shop) => shop.id);
@@ -165,7 +119,7 @@ export default function Owner() {
       lat: position.lat,
       lng: position.lng,
       phone: String(form.get('phone')) || undefined,
-      hours: String(form.get('hours')) || undefined,
+      hours: `${String(form.get('hoursFrom'))}–${String(form.get('hoursTo'))}`,
       pinHash: pin ? await sha256Hex(pin) : undefined,
       createdAt: new Date().toISOString(),
     });
@@ -181,12 +135,12 @@ export default function Owner() {
     const element = e.currentTarget,
       form = new FormData(element),
       audience: Audience = { type: audienceType };
-    if (audienceType === 'student') {
+    const both = audienceType === 'student_or_visitor';
+    if (audienceType === 'student' || both) {
       if (colleges.length) audience.colleges = colleges;
       if (clubs.length) audience.clubs = clubs;
-    } else if (audienceType === 'visitor' && venues.length) {
-      audience.venues = venues;
     }
+    if ((audienceType === 'visitor' || both) && venues.length) audience.venues = venues;
     await s.data!.coupons.create({
       shopId: String(form.get('shopId')),
       title: String(form.get('title')),
@@ -303,8 +257,12 @@ export default function Owner() {
           <input name="phone" />
         </label>
         <label>
-          영업시간
-          <input name="hours" />
+          영업 시작
+          <input name="hoursFrom" type="time" defaultValue="10:00" required />
+        </label>
+        <label>
+          영업 종료
+          <input name="hoursTo" type="time" defaultValue="22:00" required />
         </label>
         <label>
           직원 PIN
@@ -343,9 +301,10 @@ export default function Owner() {
             <option value="all">누구나</option>
             <option value="student">학생</option>
             <option value="visitor">방문객</option>
+            <option value="student_or_visitor">학생 + 방문객</option>
           </select>
         </label>
-        {audienceType === 'student' && (
+        {(audienceType === 'student' || audienceType === 'student_or_visitor') && (
           <>
             <div className="owner__chips" aria-label="대상 단과대(선택, 미선택이면 전체)">
               {COLLEGES.map((college) => (
@@ -370,7 +329,7 @@ export default function Owner() {
             </fieldset>
           </>
         )}
-        {audienceType === 'visitor' && (
+        {(audienceType === 'visitor' || audienceType === 'student_or_visitor') && (
           <div className="owner__chips" aria-label="대상 방문지">
             {(Object.entries(venueShortName) as [Venue, string][]).map(([value, label]) => (
               <Chip
@@ -389,16 +348,9 @@ export default function Owner() {
             ))}
           </div>
         )}
-        <div className="owner__chips" aria-label="골든타임 프리셋">
-          <Chip onClick={() => applyGoldenPreset('rink-weekday')}>스케이트 끝나고 60분 · 평일</Chip>
-          <Chip onClick={() => applyGoldenPreset('rink-weekend')}>스케이트 끝나고 60분 · 주말</Chip>
-          <Chip onClick={() => applyGoldenPreset('show')}>공연 끝나고 60분</Chip>
-          <Chip onClick={() => applyGoldenPreset('weekend-evening')}>학생 빠지는 주말 저녁</Chip>
-        </div>
-        <p>학생이 빠지는 시간을 방문객으로 채우는 시간대예요</p>
         <label>
           요일
-          <select name="days" ref={daysRef}>
+          <select name="days">
             <option value="all">매일</option>
             <option value="weekday">평일</option>
             <option value="weekend">주말</option>
@@ -406,10 +358,10 @@ export default function Owner() {
         </label>
         <label>
           시작
-          <input name="timeFrom" type="time" defaultValue="09:00" required ref={timeFromRef} />
+          <input name="timeFrom" type="time" defaultValue="09:00" required />
         </label>
         <label>
-          끝<input name="timeTo" type="time" defaultValue="22:00" required ref={timeToRef} />
+          끝<input name="timeTo" type="time" defaultValue="22:00" required />
         </label>
         <label>
           제한

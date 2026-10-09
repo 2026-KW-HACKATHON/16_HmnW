@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useSession } from '../app/Session';
 import { evaluateEligibility } from '../lib/eligibility';
+import { formatHours } from '../lib/format';
 import { mapLinks } from '../lib/geo';
 import { AppBar } from '../ui/AppBar';
 import { Badge } from '../ui/Badge';
@@ -82,7 +83,12 @@ export default function CouponDetail() {
             ) : state === 'unverified' ? (
               <>
                 <strong>
-                  {coupon.audience.type === 'visitor' ? '방문객' : '학생'} 인증이 필요해요
+                  {coupon.audience.type === 'visitor'
+                    ? '방문객'
+                    : coupon.audience.type === 'student_or_visitor'
+                      ? '학생 또는 방문객'
+                      : '학생'}{' '}
+                  인증이 필요해요
                 </strong>
                 <small>인증하면 바로 사용할 수 있어요</small>
               </>
@@ -110,7 +116,9 @@ export default function CouponDetail() {
               ? '누구나'
               : coupon.audience.type === 'student'
                 ? '광운대 학생'
-                : '방문객'}
+                : coupon.audience.type === 'student_or_visitor'
+                  ? '광운대 학생 또는 방문객'
+                  : '방문객'}
           </dd>
           <dt>요일</dt>
           <dd>{days}</dd>
@@ -138,7 +146,7 @@ export default function CouponDetail() {
         )}
         <p>
           <ClockIcon size={20} />
-          {shop.hours || '영업시간은 매장에 문의해 주세요'}
+          {formatHours(shop.hours) || '영업시간은 매장에 문의해 주세요'}
         </p>
         <div className="button-row">
           <a
